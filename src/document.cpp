@@ -153,8 +153,9 @@ litehtml::uint_ptr litehtml::document::add_font( const tchar_t* name, int size, 
 	key += style;
 	key += _t(":");
 	key += decoration;
-
-	if(m_fonts.find(key) == m_fonts.end())
+    
+    auto pos = m_fonts.find(key);
+	if(pos == m_fonts.end())
 	{
 		font_style fs = (font_style) value_index(style, font_style_strings, fontStyleNormal);
 		int	fw = value_index(weight, font_weight_strings, -1);
@@ -215,6 +216,10 @@ litehtml::uint_ptr litehtml::document::add_font( const tchar_t* name, int size, 
 			*fm = fi.metrics;
 		}
 	}
+    else
+    {
+        ret = pos->second.font;
+    }
 	return ret;
 }
 
@@ -765,7 +770,7 @@ void litehtml::document::create_node(void* gnode, elements_vector& elements, boo
 		break;
 	case GUMBO_NODE_WHITESPACE:
 		{
-			tstring str = litehtml_from_utf8(node->v.text.text);
+			tstring str(litehtml_from_utf8(node->v.text.text));
 			for (size_t i = 0; i < str.length(); i++)
 			{
 				elements.push_back(std::make_shared<el_space>(str.substr(i, 1).c_str(), shared_from_this()));
