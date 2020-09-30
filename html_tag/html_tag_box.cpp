@@ -11,12 +11,17 @@
 
 void litehtml::html_tag::get_inline_boxes( position::vector& boxes )
 {
+    // collect all box of child elements in this tag
+    // pos in box is relative of parent (this tag)
+    
     litehtml::box* old_box = 0;
-    position pos;
+    position pos; // current pos
     for(auto& el : m_children)
     {
-        if(!el->skip())
+        if(el->skip())
         {
+            continue;
+        }
             if(el->m_box)
             {
                 if(el->m_box != old_box)
@@ -25,6 +30,7 @@ void litehtml::html_tag::get_inline_boxes( position::vector& boxes )
                     {
                         if(boxes.empty())
                         {
+                            // first box and set left
                             pos.x        -= m_padding.left + m_borders.left;
                             pos.width    += m_padding.left + m_borders.left;
                         }
@@ -61,8 +67,8 @@ void litehtml::html_tag::get_inline_boxes( position::vector& boxes )
                     boxes.insert(boxes.end(), sub_boxes.begin(), sub_boxes.end());
                 }
             }
-        }
-    }
+    } // for end
+    
     if(pos.width || pos.height)
     {
         if(boxes.empty())

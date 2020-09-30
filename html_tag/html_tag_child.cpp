@@ -42,27 +42,22 @@ void litehtml::html_tag::clearRecursive()
 
 bool litehtml::html_tag::is_first_child_inline(const element::ptr& el) const
 {
-    if(!m_children.empty())
+    for (const auto& this_el : m_children)
     {
-        for (const auto& this_el : m_children)
+        if (this_el->is_white_space())
         {
-            if (!this_el->is_white_space())
-            {
-                if (el == this_el)
-                {
-                    return true;
-                }
-                if (this_el->get_display() == display_inline)
-                {
-                    if (this_el->have_inline_child())
-                    {
-                        return false;
-                    }
-                } else
-                {
-                    return false;
-                }
-            }
+            continue;
+        }
+        
+        if (el == this_el)
+        {
+            return true;
+        }
+    
+        if (this_el->get_display() != display_inline ||
+              this_el->have_inline_child())
+        {
+            return false;
         }
     }
     return false;
@@ -70,27 +65,23 @@ bool litehtml::html_tag::is_first_child_inline(const element::ptr& el) const
 
 bool litehtml::html_tag::is_last_child_inline(const element::ptr& el)
 {
-    if(!m_children.empty())
+    for (auto it_this_el = m_children.rbegin(); it_this_el < m_children.rend(); ++it_this_el)
     {
-        for (auto this_el = m_children.rbegin(); this_el < m_children.rend(); ++this_el)
+        const auto& this_el = *it_this_el;
+        if (this_el->is_white_space())
         {
-            if (!(*this_el)->is_white_space())
-            {
-                if (el == (*this_el))
-                {
-                    return true;
-                }
-                if ((*this_el)->get_display() == display_inline)
-                {
-                    if ((*this_el)->have_inline_child())
-                    {
-                        return false;
-                    }
-                } else
-                {
-                    return false;
-                }
-            }
+            continue;
+        }
+        
+        if (el == this_el)
+        {
+            return true;
+        }
+    
+        if (this_el->get_display() != display_inline ||
+              this_el->have_inline_child())
+        {
+            return false;
         }
     }
     return false;
@@ -109,30 +100,20 @@ litehtml::element::ptr litehtml::html_tag::get_child( int idx ) const
 bool litehtml::html_tag::is_nth_child(const element::ptr& el, int num, int off, bool of_type) const
 {
     int idx = 1;
-    for(const auto& child : m_children)
+    for (auto it = m_children.begin(); it != m_children.end(); it++, idx++)
     {
-        if(child->get_display() != display_inline_text)
+        auto const& child = *it;
+        if(child->get_display() == display_inline_text)
         {
-            if( (!of_type) || (of_type && !t_strcmp(el->get_tagName(), child->get_tagName())) )
-            {
-                if(el == child)
-                {
-                    if(num != 0)
-                    {
-                        if((idx - off) >= 0 && (idx - off) % num == 0)
-                        {
-                            return true;
-                        }
-
-                    } else if(idx == off)
-                    {
-                        return true;
-                    }
-                    return false;
-                }
-                idx++;
-            }
-            if(el == child) break;
+            continue;
+        }
+        else if( ((!of_type) || (of_type && !t_strcmp(el->get_tagName(), child->get_tagName()))) && (el == child))
+        {
+            return idx == off ? true : false;
+        }
+        else if(el == child)
+        {
+            return false;
         }
     }
     return false;
@@ -141,30 +122,20 @@ bool litehtml::html_tag::is_nth_child(const element::ptr& el, int num, int off, 
 bool litehtml::html_tag::is_nth_last_child(const element::ptr& el, int num, int off, bool of_type) const
 {
     int idx = 1;
-    for(elements_vector::const_reverse_iterator child = m_children.rbegin(); child != m_children.rend(); child++)
+    for (auto it = m_children.rbegin(); it != m_children.rend(); it++, idx++)
     {
-        if((*child)->get_display() != display_inline_text)
+        auto const& child = *it;
+        if(child->get_display() == display_inline_text)
         {
-            if( !of_type || (of_type && !t_strcmp(el->get_tagName(), (*child)->get_tagName())) )
-            {
-                if(el == (*child))
-                {
-                    if(num != 0)
-                    {
-                        if((idx - off) >= 0 && (idx - off) % num == 0)
-                        {
-                            return true;
-                        }
-
-                    } else if(idx == off)
-                    {
-                        return true;
-                    }
-                    return false;
-                }
-                idx++;
-            }
-            if(el == (*child)) break;
+            continue;
+        }
+        else if( ((!of_type) || (of_type && !t_strcmp(el->get_tagName(), child->get_tagName()))) && (el == child))
+        {
+            return idx == off ? true : false;
+        }
+        else if(el == child)
+        {
+            return false;
         }
     }
     return false;
@@ -172,21 +143,13 @@ bool litehtml::html_tag::is_nth_last_child(const element::ptr& el, int num, int 
 
 bool litehtml::html_tag::is_only_child(const element::ptr& el, bool of_type) const
 {
-    int child_count = 0;
     for(const auto& child : m_children)
     {
-        if(child->get_display() != display_inline_text)
-        {
-            if( !of_type || (of_type && !t_strcmp(el->get_tagName(), child->get_tagName())) )
+        if((child->get_display() != display_inline_text) &&
+            ( !of_type || (of_type && !t_strcmp(el->get_tagName(), child->get_tagName()))))
             {
-                child_count++;
+                return false;
             }
-            if(child_count > 1) break;
-        }
-    }
-    if(child_count > 1)
-    {
-        return false;
     }
     return true;
 }
@@ -211,14 +174,11 @@ void litehtml::html_tag::remove_before_after()
 
 bool litehtml::html_tag::have_inline_child() const
 {
-    if(!m_children.empty())
+    for(const auto& el : m_children)
     {
-        for(const auto& el : m_children)
+        if(!el->is_white_space())
         {
-            if(!el->is_white_space())
-            {
-                return true;
-            }
+            return true;
         }
     }
     return false;
